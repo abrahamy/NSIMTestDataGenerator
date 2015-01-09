@@ -5,7 +5,7 @@
 import os
 import sys
 
-from .generator import DataGenerator
+from generator import DataGenerator
 
 
 def main():

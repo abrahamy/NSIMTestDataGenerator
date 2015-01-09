@@ -10,7 +10,7 @@ import sys
 import xml.etree.ElementTree as ET
 
 import config
-from .config import get_config, get_file_count, get_test_cases
+from config import get_config, get_file_count, get_test_cases
 
 
 class DataGenerator(object):
