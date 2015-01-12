@@ -25,17 +25,17 @@ class NameConfig(object):
 
     def __init__(self, test_case):
         xpath = {
-            'first': './/NigeriaSIMDemographics/FirstName',
-            'maiden': './/NigeriaSIMDemographics/MotherMaidenName',
-            'surname': './/NigeriaSIMDemographics/Surname'
+            'first': 'FirstName',
+            'maiden': 'MotherMaidenName',
+            'surname': 'Surname'
         }
 
         if test_case not in self.valid_test_cases:
             raise InvalidTestCaseException()
 
         self.file_count = 100
-        self.gen_type = test_case.split('_')[-1].lower()
-        self.search_path = xpath[test_case.split('_')[1].lower()]
+        self.type_ = test_case.split('_')[-1].lower()
+        self.search = xpath[test_case.split('_')[1].lower()]
 
 
 class CountConfig(object):
@@ -51,7 +51,12 @@ class CountConfig(object):
         if test_case not in self.valid_test_cases:
             raise InvalidTestCaseException()
 
+        mobile_number_counts = {
+            'FIVE': 5, 'TEN': 10, 'TWENTY': 20, 'FIFTY': 50, 'HUNDRED': 100
+        }
+
         self.file_count = 200
+        self.add_count = mobile_number_counts[test_case.split('_')[-1]]
 
 
 class NumberConfig(object):

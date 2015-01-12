@@ -5,12 +5,14 @@
 import contextlib
 import os
 import random
+import re
 import shutil
 import sys
 import xml.etree.ElementTree as ET
 
 import config
 from config import get_config, get_file_count, get_test_cases
+from helper import *
 
 
 class DataGenerator(object):
@@ -21,60 +23,81 @@ class DataGenerator(object):
 
     def gen_counts(self, folder, conf):
         # conf is instance of config.CountConfig
-        pass
+        print('generating data for mobile number counts...')
+        xmlfiles = get_xml_files(folder)
+
+        for xmlfile in xmlfiles:
+            document = read_xml(xmlfile)
+            if document is not None:
+                remove_elems(document)
+                mobile_nos = mk_numbers(
+                    conf.add_count - 1, conf.range_start, conf.range_stop
+                )
+
+                parent = document.find('NigeriaSIMDemographics')
+                if parent is not None:
+                    for i in range(2, conf.add_count + 1):
+                        tag = 'MobileNumber%s' % i
+                        text = '%s' % mobile_nos.pop()
+                        ET.SubElement(parent, tag, text=text)
+
+            write_xml(xmlfile, document)
+
+        print('done')
 
     def gen_dates(self, folder, conf):
         # conf is instance of config.DateConfig
-        pass
+        print('generating data for dates of birth...')
+        for xmlfile in get_xml_files(folder):
+            document = read_xml(xmlfile)
+            if document is not None:
+                dob = document.find('.//NigeriaSIMDemographics/DateOfBirth')
+                yymmdd = [
+                    random.randint(conf.range_start, conf.range_stop)
+                ]
+                yymmdd.extend(dob.text.split('-')[1:])
+                
+                dob.text = '-'.join(map(str, yymmdd))
+
+            write_xml(xmlfile, document)
+        print('done')
 
     def gen_names(self, folder, conf):
         # conf is instance of config.NameConfig
-        pass
+        print('generating data for names...')
+
+        for xmlfile in get_xml_files(folder):
+            document = read_xml(xmlfile)
+            if document is not None:
+                parent = document.find('NigeriaSIMDemographics')
+
+            if parent is not None:
+                parent.find(conf.search).text = mk_name(conf.type_)
+
+            write_xml(xmlfile, document)
+
+        print('done')
 
     def gen_numbers(self, folder, conf):
         # conf is instance of config.NumberConfig
-        xmlfiles = [
-            os.path.join(folder, i) for i in os.listdir(folder)
-            if i.endswith('.xml')
-        ]
-        mobile_nos = []
+        mobile_nos = mk_numbers(
+            len(xmlfiles), conf.range_start, conf.range_stop, conf.prefix
+        )
 
-        while len(mobile_nos) != len(xmlfiles):
-            base = random.randint(conf.range_start, conf.range_stop)
-            mobile_no = '%s%s' % (conf.prefix, '{0:07d}'.format(base))
-            if mobile_no not in mobile_nos:
-                mobile_nos.append(mobile_no)
-
-        for xmlfile in xmlfiles:
-            with contextlib.closing(open(xmlfile)) as f:
-                xmlstring = f.read()
-
-            try:
-                tree = ET.fromstring(xmlstring)
-                tree.findall(
+        for xmlfile in get_xml_files(folder):
+            document = read_xml(xmlfile)
+            if document is not None:
+                document.find(
                     './/NigeriaSIMDemographics/MainMobileNumber'
-                )[0].text = mobile_nos.pop()
+                ).text = mobile_nos.pop()
 
-                with contextlib.closing(open(xmlfile, 'w')) as f:
-                    f.write(ET.tostring(tree, encoding='utf-8'))
-
-            except Exception as e:
-                print(e.message)
-                continue
+                write_xml(xmlfile, document)
 
     def modify_fep_code(self, xmlfile):
-        try:
-            with contextlib.closing(open(xmlfile)) as f:
-                xmldata = f.read()
-
-            tree = ET.fromstring(xmldata)
-            tree.findall('.//NigeriaSIMDemographics/FEPCode')[0].text = 'SWG'
-
-            with contextlib.closing(open(xmlfile, 'w')) as f:
-                f.write(ET.tostring(tree, encoding='utf-8'))
-
-        except Exception as e:
-            print(e.message)
+        document = read_xml(xmlfile)
+        if document is not None:
+            document.find('.//NigeriaSIMDemographics/FEPCode').text = 'SWG'
+            write_xml(xmlfile, document)
 
     def run(self):
         self.split_files()
@@ -96,7 +119,7 @@ class DataGenerator(object):
         print('re-arranging files according to test case...')
 
         min_file_count = get_file_count()
-        xmlfiles = [i for i in os.listdir(self.src) if i.endswith('.xml')]
+        xmlfiles = get_xml_files(self.src)
 
         if len(xmlfiles) < min_file_count:
             print(
@@ -111,8 +134,10 @@ class DataGenerator(object):
                 os.mkdir(output_dir)
 
             for i in range(get_config(tc).file_count):
-                srcfile = os.path.join(self.src, xmlfiles.pop())
-                destfile = os.path.join(output_dir, '%s_%s.xml' % (tc, i))
+                srcfile = xmlfiles.pop()
+                destfile = os.path.join(
+                    output_dir, '%s_%s.xml' % (tc, '{0:04d}'.format(i))
+                )
                 shutil.move(srcfile, destfile)
                 self.modify_fep_code(destfile)
 
