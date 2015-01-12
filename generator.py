@@ -2,10 +2,8 @@
 # Author:  Abraham Yusuf <yabraham@swglobal.com>
 # Created: Jan 8, 2015
 
-import contextlib
 import os
 import random
-import re
 import shutil
 import sys
 import xml.etree.ElementTree as ET
@@ -56,7 +54,7 @@ class DataGenerator(object):
                     random.randint(conf.range_start, conf.range_stop)
                 ]
                 yymmdd.extend(dob.text.split('-')[1:])
-                
+
                 dob.text = '-'.join(map(str, yymmdd))
 
             write_xml(xmlfile, document)
