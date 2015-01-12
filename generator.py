@@ -31,15 +31,15 @@ class DataGenerator(object):
             if document is not None:
                 remove_elems(document)
                 mobile_nos = mk_numbers(
-                    conf.add_count - 1, conf.range_start, conf.range_stop
+                    conf.add_count - 1, 0, 9999999
                 )
 
                 parent = document.find('NigeriaSIMDemographics')
                 if parent is not None:
                     for i in range(2, conf.add_count + 1):
                         tag = 'MobileNumber%s' % i
-                        text = '%s' % mobile_nos.pop()
-                        ET.SubElement(parent, tag, text=text)
+                        elem = ET.SubElement(parent, tag)
+                        elem.text = '%s' % mobile_nos.pop()
 
             write_xml(xmlfile, document)
 
@@ -80,11 +80,13 @@ class DataGenerator(object):
 
     def gen_numbers(self, folder, conf):
         # conf is instance of config.NumberConfig
+        print('generating test data for mobile numbers by MNO..')
+        xmlfiles = get_xml_files(folder)
         mobile_nos = mk_numbers(
             len(xmlfiles), conf.range_start, conf.range_stop, conf.prefix
         )
 
-        for xmlfile in get_xml_files(folder):
+        for xmlfile in xmlfiles:
             document = read_xml(xmlfile)
             if document is not None:
                 document.find(
@@ -92,6 +94,8 @@ class DataGenerator(object):
                 ).text = mobile_nos.pop()
 
                 write_xml(xmlfile, document)
+
+        print('done')
 
     def modify_fep_code(self, xmlfile):
         document = read_xml(xmlfile)
